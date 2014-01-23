@@ -129,8 +129,8 @@ def install_using_apt():
     global root_password
     if not root_password:
         root_password = get_root_password()
-    exec_in_shell("echo mysql-server mysql-server/root_password password %s | sudo debconf-set-selections" % root_password)
-    exec_in_shell("echo mysql-server mysql-server/root_password_again password %s | sudo debconf-set-selections" % root_password)
+    exec_in_shell("echo mysql-server mysql-server/root_password password %s | debconf-set-selections" % root_password)
+    exec_in_shell("echo mysql-server mysql-server/root_password_again password %s | debconf-set-selections" % root_password)
 
     try:
         exec_in_shell("which mysql")
