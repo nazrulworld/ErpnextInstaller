@@ -6,161 +6,59 @@ from __future__ import unicode_literals
 import os, sys
 import argparse
 import subprocess
+import re
 
 is_redhat = is_debian = None
 root_password = None
-
 requirements = [
-    "chardet",
-    "cssmin",
-    "dropbox",
-    "google-api-python-client",
-    "gunicorn",
-    "httplib2",
-    "jinja2",
-    "markdown2",
-    "markupsafe",
-    "mysql-python",
-    "pygeoip",
-    "python-dateutil",
-    "python-memcached",
+    "GitPython==0.3.2.RC1",
+    "Jinja2==2.7.2",
+    "MarkupSafe==0.18",
+    "MySQL-python==1.2.5",
+    "Werkzeug==0.9.4",
+    "argparse==1.2.1",
+    "async==0.6.1",
+    "chardet==2.2.1",
+    "cssmin==0.2.0",
+    "dropbox==2.0.0",
+    "gitdb==0.5.4",
+    "google-api-python-client==1.2",
+    "gunicorn==18.0",
+    "httplib2==0.8",
+    "markdown2==2.2.0",
+    "pygeoip==0.3.0",
+    "python-dateutil==2.2",
+    "python-memcached==1.53",
     "pytz==2013d",
-    "requests",
-    "six",
-    "slugify",
-    "termcolor",
-    "werkzeug",
-    "semantic_version",
-    "gitpython"
+    "requests==2.2.1",
+    "semantic-version==2.2.2",
+    "six==1.5.2",
+    "slugify==0.0.1",
+    "smmap==0.8.2",
+    "termcolor==1.1.0",
+    "urllib3==1.7.1",
+    "wsgiref==0.1.2",
 ]
 
 
 def install(install_path):
     setup_folders(install_path)
     install_erpnext(install_path)
-
     post_install(install_path)
 
 
-def install_pre_requisites(pip_path=None):
-    global is_redhat, is_debian
-    is_redhat, is_debian = validate_install()
-    if is_redhat:
-        install_using_yum()
-    elif is_debian:
-        install_using_apt()
-
-    install_python_modules(pip_path)
-
+def install_pre_requisites():
+    install_python_modules()
     print "-"*80
     print "Pre-requisites Installed"
     print "-"*80
 
 
-def validate_install():
-    import platform
-    # check os
-    operating_system = platform.system()
-    print "Operating System =", operating_system
-    if operating_system != "Linux":
-        raise Exception,"Sorry! This installer works only for Linux based Operating Systems"
-
-    # check python version
-    python_version = sys.version.split(" ")[0]
-    print "Python Version =", python_version
-    if not (python_version and int(python_version.split(".")[0])==2 and int(python_version.split(".")[1]) >= 7):
-        raise Exception, "Hey! ERPNext needs Python version to be 2.7+"
-
-    # check distribution
-    distribution = platform.linux_distribution()[0].lower().replace('"', '')
-    print "Distribution = ", distribution
-    is_redhat = distribution in ("redhat", "red hat enterprise linux server", "centos", "centos linux", "fedora")
-    is_debian = distribution in ("debian", "ubuntu", "elementary os", "linuxmint")
-
-    if not (is_redhat or is_debian):
-        raise Exception, "Sorry! This installer works only with yum or apt-get package management"
-
-    return is_redhat, is_debian
-
-
-def install_using_yum():
-    packages = "gcc MySQL-python git memcached ntp vim-enhanced screen"
-
-    print "-"*80
-    print "Installing Packages: (This may take some time)"
-    print packages
-    print "-"*80
-    exec_in_shell("yum install -y %s" % packages)
-
-    try:
-        exec_in_shell("which mysql")
-    except subprocess.CalledProcessError:
-        packages = "mysql mysql-server mysql-devel"
-        print "Installing Packages:", packages
-        exec_in_shell("yum install -y %s" % packages)
-        exec_in_shell("service mysqld restart")
-
-        # set a root password post install
-        global root_password
-        print "Please create a password for root user of MySQL"
-        root_password = (get_root_password() or "erpnext").strip()
-        exec_in_shell('mysqladmin -u root password "%s"' % (root_password,))
-        print "Root password set as", root_password
-
-    update_config_for_redhat()
-
-
-def update_config_for_redhat():
-    import re
-    # set to autostart on startup
-    for service in ("mysqld", "memcached"):
-        exec_in_shell("chkconfig --level 2345 %s on" % service)
-        exec_in_shell("service %s restart" % service)
-
-
-def install_using_apt():
-    exec_in_shell("apt-get update")
-    packages = "libmysqlclient-dev python python-setuptools python-dev build-essential python-mysqldb git memcached ntp vim screen htop"
-    print "-"*80
-    print "Installing Packages: (This may take some time)"
-    print packages
-    print "-"*80
-    exec_in_shell("apt-get install -y %s" % packages)
-    global root_password
-    if not root_password:
-        root_password = get_root_password()
-    exec_in_shell("echo mysql-server mysql-server/root_password password %s | debconf-set-selections" % root_password)
-    exec_in_shell("echo mysql-server mysql-server/root_password_again password %s | debconf-set-selections" % root_password)
-
-    try:
-        exec_in_shell("which mysql")
-    except subprocess.CalledProcessError:
-        packages = "mysql-server"
-        print "Installing Packages:", packages
-        exec_in_shell("apt-get install -y %s" % packages)
-
-    update_config_for_debian()
-
-
-def update_config_for_debian():
-    for service in ("mysql",):
-        exec_in_shell("service %s restart" % service)
-
-
-def install_python_modules(pip_path=None):
+def install_python_modules():
     print "-"*80
     print "Installing Python Modules: (This may take some time)"
     print "-"*80
-    if pip_path is None:
-        try:
-            exec_in_shell("which pip")
-        except subprocess.CalledProcessError:
-            exec_in_shell("easy_install pip")
-            exec_in_shell("pip install --upgrade setuptools")
-        finally:
-            pip_path = 'pip'
-
-    exec_in_shell("{} install {}".format(pip_path, ' '.join(requirements)))
+    exec_in_shell("pip install {}".format(' '.join(requirements)))
 
 
 def install_erpnext(install_path):
@@ -230,10 +128,8 @@ def setup_folders(install_path):
                 os.mkdir(p)
 
 
-def setup_virtual_env(install_path, env_name):
+def create_virtual_env(install_path, env_name):
     os.chdir(install_path)
-    print env_name
-
     if env_name == 'lib' or env_name == 'app':
         env_name = '%s_env' % env_name
     try:
@@ -246,9 +142,8 @@ def setup_virtual_env(install_path, env_name):
     return os.path.join(install_path, '%s/bin' % env_name)
 
 
-
 def setup_conf(install_path, db_name):
-    import os, string, random, re
+    import string, random
     # generate db password
     char_range = string.ascii_letters + string.digits
     db_password = "".join((random.choice(char_range) for n in xrange(16)))
@@ -280,22 +175,11 @@ def exec_in_shell(cmd):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--venv', default=False)
-    parser.add_argument('--create_user', default=False, action='store_true')
     parser.add_argument('--username', default='erpnext')
     parser.add_argument('--password', default='erpnext')
     parser.add_argument('--no_install_prerequisites', default=False, action='store_true')
 
     return parser.parse_args()
-
-
-def create_user(username, password):
-    import pwd
-    p = subprocess.Popen("useradd -m -d /home/{username} -s {shell} {username}".format(username=username, shell=os.environ.get('SHELL')).split())
-    p.wait()
-    p = subprocess.Popen("passwd {username}".format(username=username).split(), stdin=subprocess.PIPE)
-    p.communicate('{password}\n{password}\n'.format(password=password))
-    p.wait()
-    return pwd.getpwnam(username).pw_uid
 
 
 def setup_cron(install_path):
@@ -311,32 +195,36 @@ def setup_cron(install_path):
         except:
             exec_in_shell('echo "%s" | crontab' % row)
 
+
 if __name__ == "__main__":
+
+    from fixit import validate_package_manager
+    is_redhat, is_debian = validate_package_manager()    
+    if is_redhat: pass
+    elif is_debian: pass
+    else:
+        raise Exception, "install has been abroted!"
     args = parse_args()
     install_path = os.getcwd()
-    global venv
-    venv = args.venv
-    if os.getuid() != 0 and args.create_user and not args.no_install_prequisites:
-        raise Exception, "Please run this script as root"
 
-    if args.create_user:
-        uid = create_user(args.username, args.password)
-        install_path = '/home/{username}/erpnext'.format(username=args.username)
+    venv = args.venv
+    if venv and not os.path.isdir(os.path.join(install_path, venv)):
+        y = raw_input("virtual environment not created, do you want without virtual environment?")
+
+        if re.match('y|ye|yes', y.lower()):
+            pass
+        else:
+            raise Exception, "install process cancelled!"
+
+    if venv:
+        y = raw_input("we are sorry, do you active virtual environment yet?")
+        if re.match('y|ye|yes', y.lower()):
+            pass
+        else:
+            raise Exception, "please active virtual environment first, then try again!"
 
     if not args.no_install_prerequisites:
-        pip_path = None
-        if venv:
-            pip_path = setup_virtual_env(install_path, venv)
-            pip_path = pip_path + '/pip'
-        install_pre_requisites(pip_path)
-
-    if os.environ.get('SUDO_UID') and not args.create_user:
-        os.setuid(int(os.environ.get('SUDO_UID')))
-
-    if os.getuid() == 0 and args.create_user:
-        os.setuid(uid)
-        if install_path:
-            os.mkdir(install_path)
+        install_pre_requisites()
 
     install(install_path=install_path)
     print
