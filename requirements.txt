@@ -23,5 +23,5 @@ six==1.5.2
 slugify==0.0.1
 smmap==0.8.2
 termcolor==1.1.0
-urllib3==1.7.1
+urllib3==1.26.5
 wsgiref==0.1.2
