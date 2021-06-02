@@ -12,7 +12,7 @@ gitdb==0.5.4
 google-api-python-client==1.2
 gunicorn==18.0
 httplib2==0.8
-markdown2==2.2.0
+markdown2==2.4.0
 pygeoip==0.3.0
 python-dateutil==2.2
 python-memcached==1.53
