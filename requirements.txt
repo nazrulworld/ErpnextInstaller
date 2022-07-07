@@ -17,7 +17,7 @@ pygeoip==0.3.0
 python-dateutil==2.2
 python-memcached==1.53
 pytz==2013d
-requests==2.2.1
+requests==2.20.0
 semantic-version==2.2.2
 six==1.5.2
 slugify==0.0.1
